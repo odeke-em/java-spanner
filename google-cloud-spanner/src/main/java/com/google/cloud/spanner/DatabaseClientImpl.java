@@ -28,7 +28,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.spanner.v1.BatchWriteResponse;
 import io.opentelemetry.api.common.Attributes;
 import javax.annotation.Nullable;
-import java.util.concurrent.AtomicLong;
+import java.util.concurrent.atomic.AtomicLong;
 
 class DatabaseClientImpl implements DatabaseClient {
   private static final String READ_WRITE_TRANSACTION = "CloudSpanner.ReadWriteTransaction";

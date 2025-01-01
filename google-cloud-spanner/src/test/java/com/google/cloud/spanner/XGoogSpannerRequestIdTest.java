@@ -16,8 +16,7 @@
 
 package com.google.cloud.spanner;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
+import static com.google.common.truth.Truth.assertThat;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -29,12 +28,13 @@ public class XGoogSpannerRequestIdTest {
 
   @Test
   public void formatValues() {
-    String gotFirst = XGoogSpannerRequestId.format(1, 1, 1, 1);
+    XGoogSpannerRequestId xReqId = new XGoogSpannerRequestId();
+    String gotFirst = xReqId.format(1, 1, 1, 1);
     String wantFirst = String.format("1.%d.1.1.1.1", this.RAND_PROCESS_ID);
-    assertThat(gotFirst, is(equalTo(wantFirst)));
+    assertThat(gotFirst).isEqualTo(wantFirst);
 
-    String gotSecond = XGoogSpannerRequestId.format(1, 1, 2, 1);
+    String gotSecond = xReqId.format(1, 1, 2, 1);
     String wantSecond = String.format("1.%d.1.1.2.1", this.RAND_PROCESS_ID);
-    assertThat(gotSecond, is(equalTo(wantSecond)));
+    assertThat(gotSecond).isEqualTo(wantSecond);
   }
 }

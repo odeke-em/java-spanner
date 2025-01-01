@@ -16,33 +16,45 @@
 
 package com.google.cloud.spanner;
 
-import java.security.SecureRandom;
+import io.grpc.CallOptions;
 import io.grpc.Channel;
+import io.grpc.ClientCall;
 import io.grpc.ClientInterceptor;
-
+import io.grpc.MethodDescriptor;
+import java.security.SecureRandom;
 
 public class XGoogSpannerRequestId implements ClientInterceptor {
-    // 1. Generate the random process Id singleton.
-    public static long RAND_PROCESS_ID = XGoogSpannerRequestId.generateRandProcessId();
-    public static long VERSION = 1; // The version of the specification being implemented.
+  // 1. Generate the random process Id singleton.
+  public static long RAND_PROCESS_ID = XGoogSpannerRequestId.generateRandProcessId();
+  public static long VERSION = 1; // The version of the specification being implemented.
 
-    private static long generateRandProcessId() {
-        byte[] rBytes = new byte[8];
-        SecureRandom srng = new SecureRandom();
-        srng.nextBytes(rBytes);
-        long result = 0L;
-        result |= long(rBytes[7]) | long(rBytes[6])<<8 | long(rBytes[5])<<16 | long(rBytes[4])<<24 | long(rBytes[3])<<32 | long(rBytes[2])<<40 | long(rBytes[1])<<48 | long(rBytes[0])<<56;
-        return result;
-    }
+  private static long generateRandProcessId() {
+    byte[] rBytes = new byte[8];
+    SecureRandom srng = new SecureRandom();
+    srng.nextBytes(rBytes);
+    long result =
+        rBytes[7]
+            | rBytes[6] << 8
+            | rBytes[5] << 16
+            | rBytes[4] << 24
+            | rBytes[3] << 32
+            | rBytes[2] << 40
+            | rBytes[1] << 48
+            | rBytes[0] << 56;
+    return result;
+  }
 
-    /*
-    * format joins the respective fields with the "." separator.
-    */
-    public String format(long nthClientId, long nthChannelId, long nthRequest, long attempt) {
-        return String.format("%d.%d.%d.%d.%d.%d", this.VERSION, this.RAND_PROCESS_ID, nthClientId, nthChannelId, nthRequest, attempt);
-    }
+  /*
+   * format joins the respective fields with the "." separator.
+   */
+  public String format(long nthClientId, long nthChannelId, long nthRequest, long attempt) {
+    return String.format(
+        "%d.%d.%d.%d.%d.%d",
+        this.VERSION, this.RAND_PROCESS_ID, nthClientId, nthChannelId, nthRequest, attempt);
+  }
 
-    public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(MethodDescriptor<ReqT, RespT> methodDescriptor, CallOptions callOptions, Channel next) {
-        return next.newCall(methodDescriptor, callOptions);
-    }
+  public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
+      MethodDescriptor<ReqT, RespT> methodDescriptor, CallOptions callOptions, Channel next) {
+    return next.newCall(methodDescriptor, callOptions);
+  }
 }

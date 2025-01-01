@@ -33,3 +33,4 @@ docs/
 .flattened-pom.xml
 .java-version
 .vscode/
+*.sw[op]

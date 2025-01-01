@@ -28,6 +28,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.spanner.v1.BatchWriteResponse;
 import io.opentelemetry.api.common.Attributes;
 import javax.annotation.Nullable;
+import java.util.concurrent.AtomicLong;
 
 class DatabaseClientImpl implements DatabaseClient {
   private static final String READ_WRITE_TRANSACTION = "CloudSpanner.ReadWriteTransaction";
@@ -42,6 +43,7 @@ class DatabaseClientImpl implements DatabaseClient {
   @VisibleForTesting final boolean useMultiplexedSessionForRW;
 
   final boolean useMultiplexedSessionBlindWrite;
+  private AtomicLong nthRequest = new AtomicLong(0);
 
   @VisibleForTesting
   DatabaseClientImpl(SessionPool pool, TraceWrapper tracer) {
@@ -341,8 +343,14 @@ class DatabaseClientImpl implements DatabaseClient {
     }
   }
 
+  private long nextNthRequestId() {
+    return this.nthRequest.addAndGet(1);
+  }
+
   private <T> T runWithSessionRetry(Function<Session, T> callable) {
     PooledSessionFuture session = getSession();
+    Long nthRequest = this.nextNthRequestId();
+    long attempt = 0L;
     while (true) {
       try {
         return callable.apply(session);

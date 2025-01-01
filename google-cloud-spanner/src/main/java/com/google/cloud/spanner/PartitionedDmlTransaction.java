@@ -81,8 +81,15 @@ public class PartitionedDmlTransaction implements SessionImpl.SessionTransaction
     Stopwatch stopwatch = Stopwatch.createStarted(ticker);
     Options options = Options.fromUpdateOptions(updateOptions);
 
+    DatabaseClientImpl db = this.spanner.dbClients.get(this.session.getDatabaseId());
+    long nthRequest = db.nextNthRequest();
+    long nthClientId = db.getNthClientId();
+
     try {
       ExecuteSqlRequest request = newTransactionRequestFrom(statement, options);
+
+      long attempt = 1L;
+      long channelId = this.session.getChannel();
 
       while (true) {
         final Duration remainingTimeout = tryUpdateTimeout(timeout, stopwatch);
@@ -105,6 +112,11 @@ public class PartitionedDmlTransaction implements SessionImpl.SessionTransaction
           LOGGER.log(
               Level.FINER, "Retrying PartitionedDml transaction after UnavailableException", e);
           request = resumeOrRestartRequest(resumeToken, statement, request, options);
+
+          if (resumeToken.isEmpty()) {
+            attempt = 0L;
+            nthRequest = db.nextNthRequest();
+          }
         } catch (InternalException e) {
           if (!isRetryableInternalErrorPredicate.apply(e)) {
             throw e;
@@ -113,6 +125,10 @@ public class PartitionedDmlTransaction implements SessionImpl.SessionTransaction
           LOGGER.log(
               Level.FINER, "Retrying PartitionedDml transaction after InternalException - EOS", e);
           request = resumeOrRestartRequest(resumeToken, statement, request, options);
+          if (resumeToken.isEmpty()) {
+            attempt = 0L;
+            nthRequest = db.nextNthRequest();
+          }
         } catch (AbortedException e) {
           LOGGER.log(Level.FINER, "Retrying PartitionedDml transaction after AbortedException", e);
           resumeToken = ByteString.EMPTY;
@@ -120,6 +136,8 @@ public class PartitionedDmlTransaction implements SessionImpl.SessionTransaction
           updateCount = 0L;
           request = newTransactionRequestFrom(statement, options);
         }
+
+        attempt++;
       }
       if (!foundStats) {
         throw SpannerExceptionFactory.newSpannerException(

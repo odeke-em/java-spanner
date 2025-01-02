@@ -112,11 +112,6 @@ public class PartitionedDmlTransaction implements SessionImpl.SessionTransaction
           LOGGER.log(
               Level.FINER, "Retrying PartitionedDml transaction after UnavailableException", e);
           request = resumeOrRestartRequest(resumeToken, statement, request, options);
-
-          if (resumeToken.isEmpty()) {
-            attempt = 0L;
-            nthRequest = db.nextNthRequest();
-          }
         } catch (InternalException e) {
           if (!isRetryableInternalErrorPredicate.apply(e)) {
             throw e;
@@ -125,10 +120,7 @@ public class PartitionedDmlTransaction implements SessionImpl.SessionTransaction
           LOGGER.log(
               Level.FINER, "Retrying PartitionedDml transaction after InternalException - EOS", e);
           request = resumeOrRestartRequest(resumeToken, statement, request, options);
-          if (resumeToken.isEmpty()) {
-            attempt = 0L;
-            nthRequest = db.nextNthRequest();
-          }
+          // TODO: Should we be invoking nextNthRequest and attempt=0L afresh?
         } catch (AbortedException e) {
           LOGGER.log(Level.FINER, "Retrying PartitionedDml transaction after AbortedException", e);
           resumeToken = ByteString.EMPTY;

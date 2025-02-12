@@ -17,13 +17,13 @@
 package com.google.cloud.spanner;
 
 import static com.google.cloud.spanner.TransactionMutationLimitExceededException.isTransactionMutationLimitException;
+import static com.google.cloud.spanner.XGoogSpannerRequestHeaderIdInterceptor.X_GOOG_SPANNER_REQUEST_ID_KEY;
 
 import com.google.api.gax.grpc.GrpcStatusCode;
 import com.google.api.gax.rpc.ApiException;
 import com.google.api.gax.rpc.ErrorDetails;
 import com.google.api.gax.rpc.WatchdogTimeoutException;
 import com.google.cloud.spanner.SpannerException.DoNotConstructDirectly;
-import static com.google.cloud.spanner.XGoogSpannerRequestHeaderIdInterceptor.X_GOOG_SPANNER_REQUEST_ID_KEY;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import com.google.rpc.ErrorInfo;

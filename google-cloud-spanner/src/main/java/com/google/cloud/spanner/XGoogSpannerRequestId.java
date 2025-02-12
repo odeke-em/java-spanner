@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Google LLC
+ * Copyright 2025 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,9 @@
 
 package com.google.cloud.spanner;
 
-import io.grpc.CallOptions;
-import io.grpc.Channel;
-import io.grpc.ClientCall;
-import io.grpc.ClientInterceptor;
-import io.grpc.MethodDescriptor;
 import java.security.SecureRandom;
 
-public class XGoogSpannerRequestId implements ClientInterceptor {
+public class XGoogSpannerRequestId {
   // 1. Generate the random process Id singleton.
   public static long RAND_PROCESS_ID = XGoogSpannerRequestId.generateRandProcessId();
   public static long VERSION = 1; // The version of the specification being implemented.
@@ -51,10 +46,5 @@ public class XGoogSpannerRequestId implements ClientInterceptor {
     return String.format(
         "%d.%d.%d.%d.%d.%d",
         this.VERSION, this.RAND_PROCESS_ID, nthClientId, nthChannelId, nthRequest, attempt);
-  }
-
-  public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
-      MethodDescriptor<ReqT, RespT> methodDescriptor, CallOptions callOptions, Channel next) {
-    return next.newCall(methodDescriptor, callOptions);
   }
 }

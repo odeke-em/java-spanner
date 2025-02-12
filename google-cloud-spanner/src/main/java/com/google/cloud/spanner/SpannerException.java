@@ -56,6 +56,11 @@ public class SpannerException extends BaseGrpcServiceException {
 
   private final ErrorCode code;
   private final ApiException apiException;
+  private final String requestId;
+
+  public String getRequestId() {
+    return this.requestId;
+  }
 
   /** Private constructor. Use {@link SpannerExceptionFactory} to create instances. */
   SpannerException(

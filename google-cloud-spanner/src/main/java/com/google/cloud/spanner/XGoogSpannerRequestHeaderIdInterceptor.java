@@ -23,9 +23,10 @@ import io.grpc.ClientInterceptor;
 import io.grpc.ForwardingClientCall.SimpleForwardingClientCall;
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
+import io.grpc.StatusException;
 
 public class XGoogSpannerRequestHeaderIdInterceptor implements ClientInterceptor {
-  private static final Metadata.Key<String> X_GOOG_SPANNER_REQUEST_ID_KEY =
+  public static final Metadata.Key<String> X_GOOG_SPANNER_REQUEST_ID_KEY =
       Metadata.Key.of("x-goog-spanner-request-id", Metadata.ASCII_STRING_MARSHALLER);
 
   @Override
@@ -39,13 +40,16 @@ public class XGoogSpannerRequestHeaderIdInterceptor implements ClientInterceptor
             headers.get(XGoogSpannerRequestHeaderIdInterceptor.X_GOOG_SPANNER_REQUEST_ID_KEY);
         boolean reqIdIsEmpty = reqID == null || reqID.isEmpty();
         if (reqIdIsEmpty) {
+          super.start(responseListener, headers);
           return;
         }
 
         // Since we've now received the injected header
         // we can now inject it into any returned errors.
         try {
-        } catch (Exception e) {
+          super.start(responseListener, headers);
+        } catch (StatusException e) {
+          // Add the request-id to the Exception.
         }
       }
     };

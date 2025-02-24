@@ -173,6 +173,15 @@ class SessionImpl implements Session {
     return currentSpan;
   }
 
+  public int getChannelId() {
+    if (this.options == null) {
+      return -1;
+    }
+
+    // TODO: Find the actual channel's id.
+    return 1;
+  }
+
   Instant getLastUseTime() {
     return sessionReference.getLastUseTime();
   }
@@ -200,6 +209,10 @@ class SessionImpl implements Session {
   @Override
   public long executePartitionedUpdate(Statement stmt, UpdateOption... options) {
     setActive(null);
+
+    // 1. Acquire from the underlying database, the nthClientId.
+    // 2. Increment and acquire the nthRequest from the databaseClient
+    // 3. Increment the retry count.
     PartitionedDmlTransaction txn =
         new PartitionedDmlTransaction(this, spanner.getRpc(), Ticker.systemTicker());
     return txn.executeStreamingPartitionedUpdate(

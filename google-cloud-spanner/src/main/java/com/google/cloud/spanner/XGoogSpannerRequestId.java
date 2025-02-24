@@ -18,6 +18,7 @@ package com.google.cloud.spanner;
 
 import com.google.api.core.InternalApi;
 import com.google.common.annotations.VisibleForTesting;
+import io.grpc.Metadata;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.Objects;
@@ -28,11 +29,14 @@ public class XGoogSpannerRequestId {
   @VisibleForTesting
   static final String RAND_PROCESS_ID = XGoogSpannerRequestId.generateRandProcessId();
 
+  public static final Metadata.Key<String> REQUEST_HEADER_KEY =
+      Metadata.Key.of("x-goog-spanner-request-id", Metadata.ASCII_STRING_MARSHALLER);
+
   @VisibleForTesting
   static final long VERSION = 1; // The version of the specification being implemented.
 
   private final long nthClientId;
-  private final long nthChannelId;
+  private long nthChannelId;
   private final long nthRequest;
   private long attempt;
 
@@ -84,5 +88,14 @@ public class XGoogSpannerRequestId {
   @Override
   public int hashCode() {
     return Objects.hash(this.nthClientId, this.nthChannelId, this.nthRequest, this.attempt);
+  }
+
+  public void incrementRetry() {
+    this.attempt++;
+  }
+
+  public void setChannelId(int channelId) {
+    // channelId can change between sessions.
+    this.nthChannelId = channelId;
   }
 }

@@ -81,11 +81,14 @@ public class PartitionedDmlTransaction implements SessionImpl.SessionTransaction
     Stopwatch stopwatch = Stopwatch.createStarted(ticker);
     Options options = Options.fromUpdateOptions(updateOptions);
 
+    long nthRetry = 0L;
+
     try {
       ExecuteSqlRequest request = newTransactionRequestFrom(statement, options);
 
       while (true) {
         final Duration remainingTimeout = tryUpdateTimeout(timeout, stopwatch);
+        nthRetry++;
 
         try {
           ServerStream<PartialResultSet> stream =

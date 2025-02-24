@@ -27,6 +27,9 @@ import com.google.common.base.Function;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.spanner.v1.BatchWriteResponse;
 import io.opentelemetry.api.common.Attributes;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.Nullable;
 
 class DatabaseClientImpl implements DatabaseClient {
@@ -42,6 +45,10 @@ class DatabaseClientImpl implements DatabaseClient {
   @VisibleForTesting final boolean useMultiplexedSessionForRW;
 
   final boolean useMultiplexedSessionBlindWrite;
+
+  private final AtomicInteger nthRequest;
+  private final long nthClientId;
+  private static final AtomicInteger NTH_CLIENT_ID_FOR_REQUEST_ID = new AtomicInteger(0);
 
   @VisibleForTesting
   DatabaseClientImpl(SessionPool pool, TraceWrapper tracer) {
@@ -86,6 +93,8 @@ class DatabaseClientImpl implements DatabaseClient {
     this.tracer = tracer;
     this.useMultiplexedSessionForRW = useMultiplexedSessionForRW;
     this.commonAttributes = commonAttributes;
+    this.nthRequest = new AtomicInteger(0);
+    this.nthClientId = DatabaseClientImpl.NTH_CLIENT_ID_FOR_REQUEST_ID.incrementAndGet();
   }
 
   @VisibleForTesting
@@ -344,14 +353,38 @@ class DatabaseClientImpl implements DatabaseClient {
 
   private long executePartitionedUpdateWithPooledSession(
       final Statement stmt, final UpdateOption... options) {
+    // 1. Create XGoogRequestId firstly.
+    XGoogSpannerRequestId reqId = this.createRequestId(0);
+
+    // 2. Update the options to inject the requestId so that
+    // every retry will refresh/update the appropriate gRPC header.
+    List<UpdateOption> allOptions = Arrays.asList(options);
+    // TODO: Inject it as an update options so that it'll be configurable.
+    // allOptions.add(0, reqId.asUpdateOption());
     ISpan span = tracer.spanBuilder(PARTITION_DML_TRANSACTION, commonAttributes);
     try (IScope s = tracer.withSpan(span)) {
-      return runWithSessionRetry(session -> session.executePartitionedUpdate(stmt, options));
+      return runWithSessionRetry(
+          session -> {
+            reqId.incrementRetry();
+
+            // TODO: reset the reqId if the channelId changed.
+            // Infer the channelId and increment the nthRequest if a
+            // fresh session is used than was previously saved.
+            // reqId.setChannelId(session.getChannel());
+
+            // 3. Inject the XGoogSpannerRequestId into the UpdateOption.
+            return session.executePartitionedUpdate(stmt, allOptions.toArray(new UpdateOption[0]));
+          });
     } catch (RuntimeException e) {
       span.setStatus(e);
       span.end();
       throw e;
     }
+  }
+
+  private XGoogSpannerRequestId createRequestId(long channelId) {
+    return XGoogSpannerRequestId.of(
+        this.nthClientId, channelId, this.nthRequest.incrementAndGet(), 0L);
   }
 
   private <T> T runWithSessionRetry(Function<Session, T> callable) {

@@ -88,6 +88,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Resources;
 import com.google.common.util.concurrent.RateLimiter;
@@ -193,6 +194,7 @@ import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -2041,6 +2043,14 @@ public class GapicSpannerRpc implements SpannerRpc {
         context
             .withStreamWaitTimeoutDuration(waitTimeout)
             .withStreamIdleTimeoutDuration(idleTimeout);
+
+    // Add here the extra headers.
+    // TODO: dynamically insert the extra-headers.
+    Map<String, List<String>> withReqId =
+        ImmutableMap.of(
+            "x-goog-spanner-request-id",
+            Collections.singletonList("1.PROC_ID.CLIENT_ID.CHANNEL_ID.NTH_REQ.ATTEMPT"));
+    context = context.withExtraHeaders(withReqId);
     CallContextConfigurator configurator = SpannerOptions.CALL_CONTEXT_CONFIGURATOR_KEY.get();
     ApiCallContext apiCallContextFromContext = null;
     if (configurator != null) {

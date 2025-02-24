@@ -59,7 +59,7 @@ public class XGoogSpannerRequestIdTest {
     assertTrue(m.matches());
   }
 
-  public class ServerHeaderEnforcer implements ServerInterceptor {
+  public static class ServerHeaderEnforcer implements ServerInterceptor {
     private List<String> gotValues;
 
     ServerHeaderEnforcer() {
@@ -75,6 +75,12 @@ public class XGoogSpannerRequestIdTest {
       String gotReqId = requestHeaders.get(XGoogSpannerRequestId.REQUEST_HEADER_KEY);
       assertNotNull(gotReqId);
       Matcher m = XGoogSpannerRequestIdTest.REGEX_RAND_PROCESS_ID.matcher(gotReqId);
+      String message =
+          String.format(
+              "%s lacks %s",
+              call.getMethodDescriptor().getFullMethodName(),
+              XGoogSpannerRequestId.REQUEST_HEADER_KEY.toString());
+      System.out.println("\033[32mMessage: " + message + "\033[00m");
       assertTrue(m.matches());
 
       this.gotValues.add(gotReqId);

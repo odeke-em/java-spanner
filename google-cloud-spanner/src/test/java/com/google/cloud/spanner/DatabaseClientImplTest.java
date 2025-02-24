@@ -105,6 +105,7 @@ import io.grpc.Context;
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import io.grpc.Server;
+import io.grpc.ServerInterceptors;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.inprocess.InProcessServerBuilder;
@@ -152,6 +153,7 @@ public class DatabaseClientImplTest {
   private static final String DATABASE_NAME =
       String.format(
           "projects/%s/instances/%s/databases/%s", TEST_PROJECT, TEST_INSTANCE, TEST_DATABASE);
+  private static XGoogSpannerRequestIdTest.ServerHeaderEnforcer xGoogReqIdInterceptor;
   private static MockSpannerServiceImpl mockSpanner;
   private static Server server;
   private static LocalChannelProvider channelProvider;
@@ -220,13 +222,14 @@ public class DatabaseClientImplTest {
         StatementResult.query(SELECT1_FROM_TABLE, MockSpannerTestUtil.SELECT1_RESULTSET));
     mockSpanner.setBatchWriteResult(BATCH_WRITE_RESPONSES);
 
+    xGoogReqIdInterceptor = new XGoogSpannerRequestIdTest.ServerHeaderEnforcer();
     executor = Executors.newSingleThreadExecutor();
     String uniqueName = InProcessServerBuilder.generateName();
     server =
         InProcessServerBuilder.forName(uniqueName)
             // We need to use a real executor for timeouts to occur.
             .scheduledExecutorService(new ScheduledThreadPoolExecutor(1))
-            .addService(mockSpanner)
+            .addService(ServerInterceptors.intercept(mockSpanner, xGoogReqIdInterceptor))
             .build()
             .start();
     channelProvider = LocalChannelProvider.create(uniqueName);
